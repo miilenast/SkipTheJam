@@ -4,6 +4,7 @@ import com.google.firebase.firestore.DocumentId
 
 data class Comment(
     @DocumentId
+    val id: String = "",
     val locationid: String = "",
     val uid: String = "",
     val description: String = "",

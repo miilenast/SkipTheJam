@@ -10,5 +10,7 @@ data class User(
     val email: String = "",
     val username: String = "",
     val profilnaSlikaURL: String = "",
-    val poeni: Int = 0
+    val poeni: Int = 0,
+    val langitude: Double = 0.0,
+    val longitude: Double = 0.0
 )
