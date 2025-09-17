@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "830102812000",
+    "project_id": "skipthejam-9a7c3",
+    "storage_bucket": "skipthejam-9a7c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830102812000:android:af1c1bab2a749021811a05",
+        "android_client_info": {
+          "package_name": "com.example.skipthejam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdI6zLZw6NpmjPExwAOP7Ij8-KTWN_ZYk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
