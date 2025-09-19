@@ -15,6 +15,7 @@ class LocationService(private val context: Context) {
     private var locationCallback: LocationCallback? = null
     var onLocation: ((android.location.Location) -> Unit)? = null
     private var lastLocation: Location? = null
+
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 

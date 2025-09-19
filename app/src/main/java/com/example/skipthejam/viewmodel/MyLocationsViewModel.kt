@@ -4,6 +4,7 @@ import android.app.Application
 import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import com.example.skipthejam.service.PointsService
 import com.example.skipthejam.service.CommentsService
 import com.example.skipthejam.model.EventType
 import com.example.skipthejam.service.LocationService
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 class MyLocationsViewModel(application: Application): AndroidViewModel(application) {
     private val locationService = LocationService(application.applicationContext)
     private val commentsService = CommentsService(application.applicationContext)
+    private val pointsService = PointsService()
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val storage = FirebaseStorage.getInstance()
@@ -55,6 +57,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
         db.collection("locations")
             .add(location)
             .addOnSuccessListener { docRef ->
+
                 if (image != null) {
                     val locationId = docRef.id
                     val path =
@@ -64,55 +67,24 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                             db.collection("locations")
                                 .document(locationId)
                                 .update("imageUrl", downloadUrl)
-                                .addOnSuccessListener { onResult(true, "Dodata je slika lokacije") }
-                                .addOnFailureListener {
-                                    onResult(
-                                        false,
-                                        "Lokacija dodata, slika nije"
-                                    )
+                                .addOnSuccessListener {
+                                    pointsService.addPointsToCurrentsUser(5)
+                                    onResult(true, "Dodata je lokacija sa slikom, +5p")
+
                                 }
-                        } else
-                            onResult(false, "Nije moguće uploadovati sliku")
+                                .addOnFailureListener {
+                                    pointsService.addPointsToCurrentsUser(3)
+                                    onResult( false, "Lokacija dodata , slika nije, +3p" )
+                                }
+                        } else {
+                            pointsService.addPointsToCurrentsUser(3)
+                            onResult(false, "Nije moguće uploadovati sliku, +3p")
+                        }
                     }
                 } else
                     onResult(true, "Lokacija uspešno dodata")
             }
             .addOnFailureListener { onResult(false, "Greška prilikom dodavanja lokacije") }
-    }
-
-    fun deleteLocation(locationId: String, onResult: (Boolean, String?) -> Unit) {
-        commentsService.deleteCommentsForLocation(locationId) { success, msg ->
-            if (!success) {
-                onResult(false, "Greška pri brisanju komentara: $msg")
-                return@deleteCommentsForLocation
-            }
-
-            val folderRef = storage.reference.child("locations/$locationId")
-            folderRef.listAll()
-                .addOnSuccessListener { listResult ->
-                    val deleteTasks = listResult.items.map { it.delete() }
-
-                    Tasks.whenAll(deleteTasks)
-                        .addOnSuccessListener {
-                            db.collection("locations").document(locationId)
-                                .delete()
-                                .addOnSuccessListener {
-                                    onResult(
-                                        true,
-                                        "Lokacija i sve slike uspešno obrisane"
-                                    )
-                                }
-                                .addOnFailureListener {
-                                    onResult(
-                                        false,
-                                        "Greška pri brisanju lokacije"
-                                    )
-                                }
-                        }
-                        .addOnFailureListener { onResult(false, "Greška pri brisanju slika") }
-                }
-                .addOnFailureListener { onResult(false, "Greška pri pristupu folderu slika") }
-        }
     }
 
     fun fetchAllLocations() {
