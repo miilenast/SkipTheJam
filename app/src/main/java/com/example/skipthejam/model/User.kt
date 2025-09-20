@@ -3,6 +3,7 @@ package com.example.skipthejam.model
 import com.google.firebase.firestore.DocumentId
 
 data class User(
+    @DocumentId
     val id: String = "",
     val ime: String = "",
     val prezime: String = "",

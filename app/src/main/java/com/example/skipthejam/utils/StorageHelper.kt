@@ -14,6 +14,6 @@ object StorageHelper {
                     onResult(true, downloadUri.toString())
                 }
             }
-            .addOnFailureListener { onResult(false, null) }
+            .addOnFailureListener { e-> onResult(false, e.message) }
     }
 }

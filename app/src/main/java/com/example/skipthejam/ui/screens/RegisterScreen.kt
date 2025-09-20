@@ -2,6 +2,7 @@ package com.example.skipthejam.ui.screens
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -19,9 +20,13 @@ import com.example.skipthejam.viewmodel.AuthentificationViewModel
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import java.io.File
 import java.io.FileOutputStream
+import android.Manifest
+import android.content.pm.PackageManager
 
 @Composable
 fun RegisterScreen(
@@ -36,24 +41,48 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var profilePicture by remember { mutableStateOf<Uri?>(null) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri:Uri? -> profilePicture = uri }
 
     val context = LocalContext.current
+    var hasCameraPermision by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA)
+        == PackageManager.PERMISSION_GRANTED
+        ) }
+
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
+        ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         bitmap?.let {
-            val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
-            FileOutputStream(file).use { out ->
-                it.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            try {
+                val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(file).use { out ->
+                    it.compress(Bitmap.CompressFormat.JPEG, 100, out)
+                }
+                val uri = Uri.fromFile(file)
+                Log.d("Camera Capture", "Kreiran URI: $uri")
+                profilePicture = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             }
-            profilePicture = Uri.fromFile(file)
+            catch (e: Exception){
+                Log.e("Camera Capture", "Greška pri čuvanju slike", e)
+            }
         }
     }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermision = granted;
+        if(granted)
+            cameraLauncher.launch(null)
+    }
+
 
     Column(
         modifier = Modifier
@@ -97,7 +126,12 @@ fun RegisterScreen(
                     Text("Izaberi iz galerije")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Button( onClick = {cameraLauncher.launch(null) }) {
+                Button( onClick = {
+                    if(hasCameraPermision)
+                        cameraLauncher.launch(null)
+                    else
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
                     Text("Slikaj")
                 }
             }
@@ -113,14 +147,17 @@ fun RegisterScreen(
         Button(
             onClick = {
                 authViewModel.registerUser(username, email, password, ime, prezime, brojTelefona, profilePicture)
-                { success, message ->
-                    if (success)
-                        onRegisterSuccess()
+                { success, mes ->
+                    if (success) {
+                        title = "Obaveštenje"
+                        message = "Uspešno ste se registrovali na aplikaciju, sada možete da se prijavite na vaš nalog"
+                    }
                     else {
                         password = ""
-                        showErrorDialog = true
-                        errorMessage = message ?: "Greška pri registraciji"
+                        title = "Greška"
+                        message = mes ?: "Greška pri registraciji"
                     }
+                    showErrorDialog = true
                 }
             },
             modifier = Modifier
@@ -133,16 +170,16 @@ fun RegisterScreen(
 
     if(showErrorDialog){
         AlertDialog(
-            onDismissRequest = {
-                showErrorDialog = false
-                errorMessage = ""
-            },
-            title = { Text("Greška") },
-            text = { Text(errorMessage) },
+            onDismissRequest = {},
+            title = { Text(title) },
+            text = { Text(message) },
             confirmButton =  {
                 TextButton(onClick = {
                     showErrorDialog = false
-                    errorMessage = ""
+                    message = ""
+                    if(title == "Obaveštenje"){
+                        onRegisterSuccess()
+                    }
                 }) {
                     Text("OK")
                 }

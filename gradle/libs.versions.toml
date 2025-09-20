@@ -1,25 +1,22 @@
 [versions]
-agp = "8.11.1"
+agp = "8.11.2"
 coilCompose = "2.7.0"
 firebaseMessagingKtx = "24.1.2"
-kotlin = "2.0.21"
-coreKtx = "1.16.0"
+kotlin = "2.2.20"
+coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.9.2"
-activityCompose = "1.10.1"
-composeBom = "2024.09.00"
-firebaseBom = "34.1.0"
+lifecycleRuntimeKtx = "2.9.4"
+activityCompose = "1.11.0"
+composeBom = "2025.09.00"
+firebaseBom = "34.3.0"
 mapsCompose = "6.10.0"
-navigationRuntimeKtx = "2.9.3"
-navigationCompose = "2.9.3"
+navigationRuntimeKtx = "2.9.4"
+navigationCompose = "2.9.4"
 playServicesLocation = "21.3.0"
 playServicesMaps = "19.2.0"
-secretsGradlePlugin = "2.0.1"
-material3 = "1.3.2"
 workRuntimeKtx = "2.10.4"
-compose-ui = "1.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -49,8 +46,6 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
-secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradleplugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

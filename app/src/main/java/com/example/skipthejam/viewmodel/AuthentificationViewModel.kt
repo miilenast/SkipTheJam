@@ -16,6 +16,8 @@ class AuthentificationViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     private val _currentUser = mutableStateOf<FirebaseUser?>(auth.currentUser)
     val currentUser: State<FirebaseUser?> = _currentUser
+    private val _currentUserUser = mutableStateOf<User?>(null)
+    val currentUserUser: State<User?> = _currentUserUser
 
     fun registerUser(username: String,
                      email: String, password: String,
@@ -33,46 +35,53 @@ class AuthentificationViewModel : ViewModel() {
                 .whereEqualTo("username", username)
                 .get()
                 .addOnSuccessListener { result ->
-                    if (!result.isEmpty)
+                    if (!result.isEmpty) {
                         onResult(false, "Ovo korisničko ime je zauzeto")
-                    else {
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    _currentUser.value = auth.currentUser
-                                    val uid = auth.currentUser!!.uid
+                        return@addOnSuccessListener
+                    }
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                _currentUser.value = auth.currentUser
+                                val uid = auth.currentUser!!.uid
 
-                                    var user = User(
-                                        username = username,
-                                        ime = ime,
-                                        prezime = prezime,
-                                        brojTelefona = brojTelefona,
-                                        email = email,
-                                        profilnaSlikaURL = ""
-                                    )
-                                    db.collection("users")
-                                        .document(uid)
-                                        .set(user)
-                                        .addOnSuccessListener { onResult(true, "Uspešno ste se registrovali") }
-                                        .addOnFailureListener { e -> onResult(false, e.message) }
-
-                                    profilnaSlika?.let { uri ->
-                                        val path = "profile_pictures/$uid.jpg"
-                                        StorageHelper.uploadFile(uri, path) { success, downloadUrl ->
-                                            if(success && downloadUrl != null){
-                                                db.collection("users")
-                                                    .document(uid)
-                                                    .update("profilnaSlikaURL", downloadUrl)
-                                                user = user.copy(profilnaSlikaURL = downloadUrl)
-                                                onResult(true, "Profilna slika uploadovana")
+                                var user = User(
+                                    id = uid,
+                                    username = username,
+                                    ime = ime,
+                                    prezime = prezime,
+                                    brojTelefona = brojTelefona,
+                                    email = email,
+                                    profilnaSlikaURL = ""
+                                )
+                                db.collection("users")
+                                    .document(uid)
+                                    .set(user)
+                                    .addOnSuccessListener {
+                                        _currentUserUser.value = user
+                                        profilnaSlika?.let { uri ->
+                                            val path = "profile_pictures/$uid.jpg"
+                                            StorageHelper.uploadFile(uri, path) { success, downloadUrl ->
+                                                if(success && downloadUrl != null){
+                                                    db.collection("users")
+                                                        .document(uid)
+                                                        .update("profilnaSlikaURL", downloadUrl)
+                                                    user = user.copy(profilnaSlikaURL = downloadUrl)
+                                                    _currentUserUser.value = user
+                                                    onResult(true, "Profilna slika uploadovana")
+                                                }
+                                                else
+                                                    onResult(false, "Nije moguce uploadovati profilnu sliku")
                                             }
-                                            else
-                                                onResult(false, "Nije moguce uploadovati profilnu sliku")
+                                        } ?: run {
+                                            onResult(true, "Uspešno ste se registrovali")
                                         }
                                     }
-                                }
-                                else
-                                    onResult(false, task.exception?.message)
+                                    .addOnFailureListener { e -> onResult(false, e.message) }
+                            }
+                            else{
+                                onResult(false, task.exception?.message)
+                                return@addOnCompleteListener
                             }
                     }
                 }
@@ -94,7 +103,16 @@ class AuthentificationViewModel : ViewModel() {
                         auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
                                 if(task.isSuccessful) {
+                                    val fetchedUser = User(
+                                        id = userDocument.id,
+                                        username = userDocument.getString("username") ?: "",
+                                        ime = userDocument.getString("ime") ?: "",
+                                        prezime = userDocument.getString("prezime") ?: "",
+                                        brojTelefona = userDocument.getString("brojTelefona") ?: "",
+                                        profilnaSlikaURL = userDocument.getString("profilnaSlikaURL") ?: ""
+                                    )
                                     _currentUser.value = auth.currentUser
+                                    _currentUserUser.value = fetchedUser
                                     onResult(true, "Uspešno ste se prijavili")
                                 }
                                 else
@@ -110,10 +128,20 @@ class AuthentificationViewModel : ViewModel() {
         try {
             auth.signOut()
             _currentUser.value = null
+            _currentUserUser.value = null
             onResult(true, "Uspešno ste odjavljeni")
         }
         catch(e: Exception){
             onResult(false, e.message)
+        }
+    }
+    init{
+        _currentUser.value?.uid?.let { uid ->
+            db.collection("users").document(uid)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    _currentUserUser.value = snapshot.toObject(User::class.java)
+                }
         }
     }
 }
