@@ -1,8 +1,6 @@
 package com.example.skipthejam.ui.screens
 
 import android.app.Activity
-import android.graphics.drawable.Icon
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
@@ -12,12 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.example.skipthejam.viewmodel.AuthentificationViewModel
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    goToProfil: () -> Unit
+    goToProfil: () -> Unit,
+    goToMap: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -42,9 +41,20 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Home Page")
+            ) {
+            Text(
+                text = "Home Page",
+                modifier = Modifier.align(Alignment.Center)
+            )
+
+            Button(
+                onClick = { goToMap() },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom=32.dp)
+            ){
+                Text("Mapa")
+            }
         }
     }
 }

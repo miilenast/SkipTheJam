@@ -3,13 +3,13 @@ package com.example.skipthejam.viewmodel
 import android.app.Application
 import android.location.Location
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.example.skipthejam.service.PointsService
 import com.example.skipthejam.service.CommentsService
 import com.example.skipthejam.model.EventType
 import com.example.skipthejam.service.LocationService
 import com.example.skipthejam.utils.StorageHelper
-import com.google.android.gms.tasks.Tasks
 import com.example.skipthejam.model.Location as MyLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,35 +35,39 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
         type: EventType,
         image: Uri?,
         description: String,
+        latitude: Double,
+        longitude: Double,
         onResult: (Boolean, String?) -> Unit
     ) {
         val uid = auth.currentUser?.uid ?: run {
             onResult(false, "Korisnik nije prijavljen?")
             return
         }
-        val currentLocation = locationService.getCurrentLocation()
-        if (currentLocation == null) {
-            onResult(false, "Trenutna lokacija je nepoznata")
-            return
-        }
+
         val location = MyLocation(
-            type = type,
+            type = type.eventName,
             imageUrl = null,
             description = description,
             uid = uid,
-            latitude = currentLocation!!.latitude,
-            longitude = currentLocation.longitude
+            latitude = latitude,
+            longitude = longitude
         )
+        Log.d("MyLocationsViewModel", "Pokušavam da dodam lokaciju: $location")
         db.collection("locations")
             .add(location)
             .addOnSuccessListener { docRef ->
+                Log.d("MyLocationsViewModel", "Lokacija dodata sa id: ${docRef.id}")
+
+                val locationId = docRef.id
+                val locationWithId = location.copy(id = locationId)
+                db.collection("locations").document(locationId)
+                    .update("id", locationId)
 
                 if (image != null) {
-                    val locationId = docRef.id
                     val path =
                         "locations_images/$locationId/${uid}_${System.currentTimeMillis()}.jpg"
-                    StorageHelper.uploadFile(image, path) { sucess, downloadUrl ->
-                        if (sucess && downloadUrl != null) {
+                    StorageHelper.uploadFile(image, path) { success, downloadUrl ->
+                        if (success && downloadUrl != null) {
                             db.collection("locations")
                                 .document(locationId)
                                 .update("imageUrl", downloadUrl)
@@ -72,7 +76,8 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                                     onResult(true, "Dodata je lokacija sa slikom, +5p")
 
                                 }
-                                .addOnFailureListener {
+                                .addOnFailureListener { e ->
+                                    Log.e("MyLocationsViewModel", "Neuspešno dodavanje lokacije", e)
                                     pointsService.addPointsToCurrentsUser(3)
                                     onResult( false, "Lokacija dodata , slika nije, +3p" )
                                 }
@@ -94,6 +99,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                 if (snapshot != null) {
                     val locs = snapshot.toObjects(MyLocation::class.java)
                     _locations.value = locs
+                    applyFilter()
                 }
             }
     }
@@ -107,13 +113,14 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
     private var activeFilterLastUpdate: Long? = null
     private var activeFilterRadius: Float? = null
 
+
     private fun applyFilters(lastComment: Map<String, Long?>): List<MyLocation> {
         var filtered = _locations.value
 
         activeFilterType?.let { type ->
-            filtered = filtered.filter { it.type == type }
+            filtered = filtered.filter { it.type == type.name }
         }
-        activeFilterAuthorId.let { authorid ->
+        activeFilterAuthorId?.let { authorid ->
             filtered = filtered.filter { it.uid == authorid }
         }
         activeFilterLastUpdate?.let { timeMills ->
@@ -176,6 +183,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
         activeFilterRadius = null
         activeFilterAuthorId = null
         activeFilterLastUpdate = null
+        applyFilter()
     }
 }
 

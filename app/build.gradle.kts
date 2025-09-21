@@ -72,5 +72,3 @@ dependencies {
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.coil.compose)
 }
-
-apply(plugin = "com.google.gms.google-services")

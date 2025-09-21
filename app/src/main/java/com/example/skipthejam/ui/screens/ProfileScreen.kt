@@ -34,7 +34,6 @@ fun ProfileScreen(
 
     val context = LocalContext.current
 
-    // Launcher za notifikacije (Android 13+)
     val notificationPermissionLauncher =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             rememberLauncherForActivityResult(
@@ -129,7 +128,6 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        // Alert za logout, greške i odobrene notifikacije
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = {},

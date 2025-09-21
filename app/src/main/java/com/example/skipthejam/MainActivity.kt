@@ -16,38 +16,40 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.skipthejam.ui.navigation.Screen
-import com.example.skipthejam.ui.screens.AuthChoiceScreen
-import com.example.skipthejam.ui.screens.HomeScreen
-import com.example.skipthejam.ui.screens.LoginScreen
-import com.example.skipthejam.ui.screens.ProfileScreen
-import com.example.skipthejam.ui.screens.RegisterScreen
+import com.example.skipthejam.ui.screens.*
 import com.example.skipthejam.ui.theme.SkipTheJamTheme
 import com.example.skipthejam.viewmodel.AuthentificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.example.skipthejam.viewmodel.LocationViewModel
+import com.example.skipthejam.viewmodel.MyLocationsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             SkipTheJamTheme {
-                val currentUser = FirebaseAuth.getInstance().currentUser
-                val startDestination =
-                    if(currentUser!=null) "home"
-                    else "login"
                 AppNavigation()
             }
         }
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
     }
 }
 
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
-    val authViewModel: AuthentificationViewModel = viewModel() // Jednom instanciran
+    val navController = rememberNavController()
+    val authViewModel: AuthentificationViewModel = viewModel()
+    val locationViewModel: LocationViewModel = viewModel()
+    val myLocationsViewModel: MyLocationsViewModel = viewModel()
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val startDestination =
+        if(currentUser!=null) Screen.Home.route
+        else Screen.Start.route
 
     val notificationPermissionLauncher =
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
@@ -65,8 +67,7 @@ fun AppNavigation() {
         }
     }
 
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Screen.Start.route) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Start.route) {
             AuthChoiceScreen (
                 onLoginClick = { navController.navigate(Screen.Login.route) },
@@ -79,19 +80,26 @@ fun AppNavigation() {
                     if(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
                         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
-                    navController.navigate(Screen.Home.route)
+                    navController.navigate(Screen.Home.route){
+                        popUpTo(Screen.Login.route) {inclusive = true}
+                    }
                 },
                 authViewModel
             )
         }
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = { navController.navigate(Screen.Start.route) },
+                onRegisterSuccess = { navController.navigate(Screen.Start.route) {
+                    popUpTo(Screen.Map.route) { inclusive = true }
+                } },
                 authViewModel
             )
         }
         composable(Screen.Home.route) {
-            HomeScreen(goToProfil = { navController.navigate(Screen.Profile.route) })
+            HomeScreen(
+                goToProfil = { navController.navigate(Screen.Profile.route) },
+                goToMap = { navController.navigate(Screen.Map.route) }
+            )
         }
         composable(Screen.Profile.route) {
             ProfileScreen(
@@ -102,6 +110,25 @@ fun AppNavigation() {
                 },
                 goToHomeScreen = { navController.navigate(Screen.Home.route) },
                 authViewModel
+            )
+        }
+        composable(Screen.Map.route){
+            MapScreen(
+                onFilterClick = {},
+                onAddPostClick = {navController.navigate(Screen.AddPost.route)},
+                onMarkerClick = {navController.navigate(Screen.Post.route)},
+                locationViewModel,
+                myLocationsViewModel
+            )
+        }
+        composable(Screen.AddPost.route) {
+            AddPostScreen(
+                onSaveClick = { navController.navigate(Screen.Map.route) {
+                    popUpTo(Screen.Map.route) { inclusive = true }
+                } },
+                onCancelClick = { navController.navigate(Screen.Map.route)},
+                myLocationsViewModel,
+                locationViewModel
             )
         }
     }
