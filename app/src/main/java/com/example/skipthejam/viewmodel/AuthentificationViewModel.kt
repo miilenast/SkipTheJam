@@ -42,7 +42,7 @@ class AuthentificationViewModel : ViewModel() {
                     auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                _currentUser.value = auth.currentUser
+                                //_currentUser.value = auth.currentUser
                                 val uid = auth.currentUser!!.uid
 
                                 var user = User(
@@ -67,13 +67,15 @@ class AuthentificationViewModel : ViewModel() {
                                                         .document(uid)
                                                         .update("profilnaSlikaURL", downloadUrl)
                                                     user = user.copy(profilnaSlikaURL = downloadUrl)
-                                                    _currentUserUser.value = user
+                                                    //_currentUserUser.value = user
+                                                    auth.signOut()
                                                     onResult(true, "Profilna slika uploadovana")
                                                 }
                                                 else
                                                     onResult(false, "Nije moguce uploadovati profilnu sliku")
                                             }
                                         } ?: run {
+                                            auth.signOut()
                                             onResult(true, "Uspešno ste se registrovali")
                                         }
                                     }
@@ -135,6 +137,7 @@ class AuthentificationViewModel : ViewModel() {
             onResult(false, e.message)
         }
     }
+
     init{
         _currentUser.value?.uid?.let { uid ->
             db.collection("users").document(uid)

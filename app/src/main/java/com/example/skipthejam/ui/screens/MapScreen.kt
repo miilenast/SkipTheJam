@@ -43,12 +43,16 @@ fun MapScreen(
 
     val cameraPositionState = rememberCameraPositionState()
 
+    var hasCentered by remember { mutableStateOf(false) }
     LaunchedEffect(location) {
         location?.let { loc ->
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                LatLng(loc.latitude, loc.longitude),
-                15f
-            )
+            if(!hasCentered) {
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                    LatLng(loc.latitude, loc.longitude),
+                    15f
+                )
+                hasCentered=true
+            }
         }
     }
 

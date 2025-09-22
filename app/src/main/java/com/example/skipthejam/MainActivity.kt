@@ -81,7 +81,8 @@ fun AppNavigation() {
                         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
                     navController.navigate(Screen.Home.route){
-                        popUpTo(Screen.Login.route) {inclusive = true}
+                        popUpTo(0) {inclusive = true}
+                        launchSingleTop = true
                     }
                 },
                 authViewModel
@@ -90,7 +91,7 @@ fun AppNavigation() {
         composable(Screen.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = { navController.navigate(Screen.Start.route) {
-                    popUpTo(Screen.Map.route) { inclusive = true }
+                    popUpTo(Screen.Start.route) { inclusive = true }
                 } },
                 authViewModel
             )
@@ -105,7 +106,8 @@ fun AppNavigation() {
             ProfileScreen(
                 onLogOut = {
                     navController.navigate(Screen.Start.route) {
-                        popUpTo(Screen.Start.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 goToHomeScreen = { navController.navigate(Screen.Home.route) },
@@ -123,9 +125,7 @@ fun AppNavigation() {
         }
         composable(Screen.AddPost.route) {
             AddPostScreen(
-                onSaveClick = { navController.navigate(Screen.Map.route) {
-                    popUpTo(Screen.Map.route) { inclusive = true }
-                } },
+                onSaveClick = { navController.popBackStack() },
                 onCancelClick = { navController.navigate(Screen.Map.route)},
                 myLocationsViewModel,
                 locationViewModel
