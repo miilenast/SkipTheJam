@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.skipthejam.model.EventType
+import com.example.skipthejam.model.Location
 import com.example.skipthejam.viewmodel.LocationViewModel
 import com.example.skipthejam.viewmodel.MyLocationsViewModel
 import com.google.android.gms.maps.model.*
@@ -37,6 +38,7 @@ fun MapScreen(
     val context = LocalContext.current
     val location by locationViewModel.location.collectAsState()
     val filteredLocations by myLocationsViewModel.filteredLocations.collectAsState(emptyList())
+    var selectedLocation by remember { mutableStateOf<Location?>(null) }
 
     var showFilter by remember { mutableStateOf(false) }
     var isFilterActive by remember { mutableStateOf(false) }
@@ -114,7 +116,7 @@ fun MapScreen(
                     Marker(
                         state = MarkerState(position = LatLng(loc.latitude, loc.longitude)),
                         onClick = {
-                            onMarkerClick(loc.id)
+                            selectedLocation = loc
                             true
                         }
                     )
@@ -130,6 +132,28 @@ fun MapScreen(
                             strokeColor = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2f
                         )
+                    }
+                }
+            }
+
+            selectedLocation?.let { loc ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-150).dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(loc.type, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { onMarkerClick(loc.id) }) {
+                            Text("Više informacija")
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        TextButton(onClick = { selectedLocation = null }) {
+                            Text("Zatvori")
+                        }
                     }
                 }
             }
@@ -282,6 +306,7 @@ fun MapScreen(
                                 Text("Tip", modifier = Modifier.weight(1f))
                                 Text("Opis", modifier = Modifier.weight(2f))
                             }
+
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 thickness = DividerDefaults.Thickness,

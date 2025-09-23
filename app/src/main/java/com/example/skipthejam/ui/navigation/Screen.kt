@@ -1,5 +1,7 @@
 package com.example.skipthejam.ui.navigation
 
+import com.example.skipthejam.model.Location
+
 sealed class Screen(val route: String) {
     object Start: Screen("start")
     object Login: Screen("login")
@@ -8,9 +10,8 @@ sealed class Screen(val route: String) {
     object Profile: Screen("profile")
     object Map: Screen("map")
     object AddPost: Screen("addpost")
-    //object Filter: Screen("")
-    object LocationsFound: Screen("locationtable")
-    object Post: Screen("post")
-    //dodaj komentar isto cammera permision mozda
+    object Post: Screen("post/{locationId}"){
+        fun createRoute(locationId: String) = "post/$locationId"
+    }
     object RangList: Screen("ranglist")
 }

@@ -23,8 +23,12 @@ import com.google.firebase.auth.FirebaseAuth
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.skipthejam.viewmodel.LocationViewModel
 import com.example.skipthejam.viewmodel.MyLocationsViewModel
+import com.example.skipthejam.viewmodel.PostViewModel
+import com.example.skipthejam.viewmodel.RangListViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +49,8 @@ fun AppNavigation() {
     val authViewModel: AuthentificationViewModel = viewModel()
     val locationViewModel: LocationViewModel = viewModel()
     val myLocationsViewModel: MyLocationsViewModel = viewModel()
+    val rangListViewModel: RangListViewModel = viewModel()
+    val postViewModel: PostViewModel = viewModel()
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val startDestination =
@@ -98,8 +104,9 @@ fun AppNavigation() {
         }
         composable(Screen.Home.route) {
             HomeScreen(
-                goToProfil = { navController.navigate(Screen.Profile.route) },
-                goToMap = { navController.navigate(Screen.Map.route) }
+                goToProfile = { navController.navigate(Screen.Profile.route) },
+                goToMap = { navController.navigate(Screen.Map.route) },
+                goToTopUsers = { navController.navigate(Screen.RangList.route) }
             )
         }
         composable(Screen.Profile.route) {
@@ -121,18 +128,46 @@ fun AppNavigation() {
                     launchSingleTop = true
                 } },
                 onAddPostClick = {navController.navigate(Screen.AddPost.route)},
-                onMarkerClick = {navController.navigate(Screen.Post.route)},
+                onMarkerClick = { locationId ->
+                    navController.navigate(Screen.Post.createRoute(locationId))
+                },
                 locationViewModel,
                 myLocationsViewModel
+            )
+        }
+        composable(
+            route = Screen.Post.route,
+            arguments = listOf(navArgument("locationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val locationId = backStackEntry.arguments?.getString("locationId") ?: return@composable
+            PostScreen(locationId = locationId,
+                postViewModel = postViewModel,
+                locationViewModel = locationViewModel,
+                goToMap = {navController.navigate(Screen.Map.route){
+                    popUpTo(Screen.Post.route) {inclusive = true}
+                } }
             )
         }
         composable(Screen.AddPost.route) {
             AddPostScreen(
                 onSaveClick = { navController.popBackStack() },
-                onCancelClick = { navController.navigate(Screen.Map.route)},
+                goToMap = { navController.navigate(Screen.Map.route){
+                    popUpTo(Screen.AddPost.route) {inclusive = true}
+                    launchSingleTop = true
+                } },
                 myLocationsViewModel,
                 locationViewModel
             )
         }
+        composable(Screen.RangList.route) {
+            TopUsersScreen(
+                goToHome = {navController.navigate(Screen.Home.route){
+                    popUpTo(Screen.Map.route) {inclusive = true}
+                    launchSingleTop = true
+                } },
+                rangListViewModel
+            )
+        }
+
     }
 }

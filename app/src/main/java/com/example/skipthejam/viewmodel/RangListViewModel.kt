@@ -15,8 +15,12 @@ import kotlinx.coroutines.tasks.await
 class RangListViewModel:ViewModel() {
     private val db = FirebaseFirestore.getInstance()
 
-    private val _topUsers = MutableLiveData<List<User>>(emptyList())
-    val topUsers: LiveData<List<User>> = _topUsers
+    private val _topUsers = MutableStateFlow<List<User>>(emptyList())
+    val topUsers: StateFlow<List<User>> = _topUsers
+
+    init{
+        fetchTopUsers()
+    }
 
     fun fetchTopUsers(limit: Int = 10){
         viewModelScope.launch(Dispatchers.IO) {
@@ -29,10 +33,10 @@ class RangListViewModel:ViewModel() {
                 val users = snapshot.documents.mapNotNull { doc ->
                     doc.toObject(User::class.java)?.copy(id = doc.id)
                 }
-                _topUsers.postValue(users)
+                _topUsers.value = users
             }
             catch (e: Exception) {
-                _topUsers.postValue(emptyList())
+                _topUsers.value = emptyList()
             }
         }
     }

@@ -2,10 +2,12 @@ package com.example.skipthejam.viewmodel
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.skipthejam.model.Comment
 import com.example.skipthejam.model.Location
+import com.example.skipthejam.model.User
 import com.example.skipthejam.service.CommentsService
 import com.example.skipthejam.service.LocationService
 import com.example.skipthejam.service.PointsService
@@ -13,6 +15,8 @@ import com.example.skipthejam.utils.StorageHelper
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,33 +34,54 @@ class PostViewModel(application: Application): AndroidViewModel(application){
     val selectedLocation: StateFlow<MyLocation?> = _selectedLocation
     private val _comments = MutableStateFlow<List<Comment>>(emptyList())
     val comment: StateFlow<List<Comment>> = _comments
+    private var commentsListener: ListenerRegistration? = null
 
-    fun selectLocation(locationId: String){
-        viewModelScope.launch {
-            db.collection("locations")
-                .document(locationId)
-                .get()
-                .addOnSuccessListener { doc ->
-                    val location = doc.toObject(Location::class.java)
-                    if(location != null){
-                        _selectedLocation.value = location
-                        commentsService.getComments(locationId) {success, comments ->
-                            if(success)
-                                _comments.value = comments!!.sortedByDescending { it.timestamp }
-                            else
-                                _comments.value = emptyList()
-                        }
-                    }
-                    else
-                        deselectLocation()
+    fun selectLocation(locationId: String) {
+        _selectedLocation.value = null
+        _comments.value = emptyList()
+        commentsListener?.remove()
+
+        db.collection("locations")
+            .document(locationId)
+            .get()
+            .addOnSuccessListener { doc ->
+                val location = doc.toObject(MyLocation::class.java)
+                if (location != null) {
+                    _selectedLocation.value = location
+                    observeComments(location.id) // koristi ID iz objekta, ne iz parametra
+                } else {
+                    deselectLocation()
                 }
-                .addOnFailureListener { deselectLocation() }
-        }
+            }
+            .addOnFailureListener { deselectLocation() }
+    }
+
+    private fun observeComments(locationId: String) {
+        Log.d("PostViewModel", "Observing comments for locationId: $locationId")
+
+        commentsListener?.remove()
+        Log.d("PostViewModel", "Observing comments for locationId: $locationId")
+
+        commentsListener = db.collection("comments")
+            .whereEqualTo("locationId", locationId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) {
+                    Log.e("PostViewModel", "Snapshot error: ${error?.message}")
+                    _comments.value = emptyList()
+                    return@addSnapshotListener
+                }
+                val comments = snapshot.mapNotNull { it.toObject(Comment::class.java) }
+                Log.d("PostViewModel", "Loaded ${comments.size} comments")
+                _comments.value = comments
+            }
     }
 
     fun deselectLocation() {
         _selectedLocation.value = null
         _comments.value = emptyList()
+        commentsListener?.remove()
+        commentsListener = null
     }
 
     fun addComment(description: String,
@@ -81,10 +106,12 @@ class PostViewModel(application: Application): AndroidViewModel(application){
                     onResult(false, "Korisnik ne postoji")
                     return@addOnSuccessListener
                 }
+                val user = doc.toObject(User::class.java)
 
                 val comment = Comment(
-                    locationid = location.id,
+                    locationId = location.id,
                     uid = uid,
+                    username = user?.username ?: "Anonimno",
                     description = description,
                     imageUrl = null
                 )
@@ -111,7 +138,7 @@ class PostViewModel(application: Application): AndroidViewModel(application){
                                 }}
                         } else {
                             pointsService.addPointsToCurrentsUser(2)
-                            onResult(true, "Dodat komentar")
+                            onResult(true, "Dodat komentar, +2p")
                         }
                     }
                     .addOnFailureListener { onResult(false, "komentar nije dodat") }

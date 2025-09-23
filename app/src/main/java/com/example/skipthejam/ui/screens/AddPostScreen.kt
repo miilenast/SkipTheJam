@@ -12,6 +12,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
@@ -30,7 +34,7 @@ import com.example.skipthejam.viewmodel.MyLocationsViewModel
 @Composable
 fun AddPostScreen(
     onSaveClick: () -> Unit,
-    onCancelClick: () -> Unit,
+    goToMap: () -> Unit,
     myLocationsViewModel: MyLocationsViewModel = viewModel(),
     locationViewModel: LocationViewModel = viewModel()
 ){
@@ -63,8 +67,29 @@ fun AddPostScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar({ Text("Dodaj događaj") }) }
-    ){ padding ->
+        topBar = {
+            TopAppBar(
+                title = {
+                    Box(Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Text(
+                            "Dodavanje događaja",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { goToMap() }) {
+                        Icon(imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Map",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -134,7 +159,7 @@ fun AddPostScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = { onCancelClick() },
+                    onClick = { goToMap() },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Otkaži")

@@ -32,6 +32,7 @@ fun ProfileScreen(
     var message by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     val currentUser by authViewModel.currentUserUser
+    var showLogOutDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -72,16 +73,7 @@ fun ProfileScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        authViewModel.logoutUser { success, messagee ->
-                            if (success) {
-                                message = "Odjavili ste se sa profila"
-                                title = "Obaveštenje"
-                            } else {
-                                message = messagee ?: "Nije moguće odjaviti se trenutno"
-                                title = "Greška"
-                            }
-                            showDialog = true
-                        }
+                        showLogOutDialog = true
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ExitToApp,
@@ -160,6 +152,36 @@ fun ProfileScreen(
                         title = ""
                     }) {
                         Text("OK")
+                    }
+                }
+            )
+        }
+
+        if(showLogOutDialog) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Odjavljivanje") },
+                text = { Text("Da li ste sigurni da želite da se odjavite?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogOutDialog = false
+                        authViewModel.logoutUser { success, messagee ->
+                            if (success) {
+                                message = "Odjavili ste se sa profila"
+                                title = "Obaveštenje"
+                            } else {
+                                message = messagee ?: "Nije moguće odjaviti se trenutno"
+                                title = "Greška"
+                            }
+                            showDialog = true
+                        }
+                    }) {
+                        Text("Odjavi me")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {showLogOutDialog = false}) {
+                        Text("Odustani")
                     }
                 }
             )

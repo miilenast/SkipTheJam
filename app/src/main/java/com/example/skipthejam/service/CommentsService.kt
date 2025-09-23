@@ -10,7 +10,7 @@ class CommentsService(private val context: Context) {
 
     fun getComments(locationId: String, onResult: (Boolean, List<Comment>?) -> Unit) {
         db.collection("comments")
-            .whereEqualTo("locationid", locationId)
+            .whereEqualTo("locationId", locationId)
             .get()
             .addOnSuccessListener { result ->
                 val comments = result.map { doc -> doc.toObject(Comment::class.java) }
@@ -26,9 +26,9 @@ class CommentsService(private val context: Context) {
                 val lastComments = mutableMapOf<String, Long>()
                 for (doc in result) {
                     val comment = doc.toObject(Comment::class.java)
-                    val current = lastComments[comment.locationid] ?: 0
+                    val current = lastComments[comment.locationId] ?: 0
                     if (comment.timestamp > current)
-                        lastComments[comment.locationid] = comment.timestamp
+                        lastComments[comment.locationId] = comment.timestamp
                 }
                 onResult(true, lastComments)
             }
@@ -37,7 +37,7 @@ class CommentsService(private val context: Context) {
 
     fun deleteCommentsForLocation(locationId: String, onResult: (Boolean, String?) -> Unit) {
         db.collection("comments")
-            .whereEqualTo("locationid", locationId)
+            .whereEqualTo("locationId", locationId)
             .get()
             .addOnSuccessListener { result ->
                 val batch = db.batch()

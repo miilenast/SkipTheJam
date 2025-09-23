@@ -17,8 +17,9 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    goToProfil: () -> Unit,
-    goToMap: () -> Unit
+    goToProfile: () -> Unit,
+    goToMap: () -> Unit,
+    goToTopUsers:() -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -46,7 +47,7 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { goToProfil() }) {
+                    IconButton(onClick = { goToProfile() }) {
                         Icon(
                             imageVector = Icons.Filled.AccountBox,
                             contentDescription = "Korisnički profil",
@@ -62,18 +63,28 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding),
             ) {
-            Text(
-                text = "Home Page",
-                modifier = Modifier.align(Alignment.Center)
-            )
-
-            Button(
-                onClick = { goToMap() },
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom=32.dp)
-            ){
-                Text("Mapa")
+                    .padding(bottom = 100.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = { goToTopUsers() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Top lista korisnika")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { goToMap() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Mapa")
+                }
             }
         }
     }
