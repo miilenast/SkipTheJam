@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MyLocationsViewModel(application: Application): AndroidViewModel(application) {
     private val locationService = LocationService(application.applicationContext)
+    var currentLocation: android.location.Location? = null
     private val commentsService = CommentsService(application.applicationContext)
     private val pointsService = PointsService()
     private val db = FirebaseFirestore.getInstance()
@@ -44,52 +45,60 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
             return
         }
 
-        val location = MyLocation(
-            type = type.eventName,
-            imageUrl = null,
-            description = description,
-            uid = uid,
-            latitude = latitude,
-            longitude = longitude
-        )
-        Log.d("MyLocationsViewModel", "Pokušavam da dodam lokaciju: $location")
-        db.collection("locations")
-            .add(location)
-            .addOnSuccessListener { docRef ->
-                Log.d("MyLocationsViewModel", "Lokacija dodata sa id: ${docRef.id}")
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { snapshot ->
+                val username = snapshot.getString("username") ?: "nepoznato"
 
-                val locationId = docRef.id
-                val locationWithId = location.copy(id = locationId)
-                db.collection("locations").document(locationId)
-                    .update("id", locationId)
+                val location = MyLocation(
+                    type = type.eventName,
+                    imageUrl = null,
+                    description = description,
+                    uid = uid,
+                    username = username,
+                    latitude = latitude,
+                    longitude = longitude
+                )
+                db.collection("locations")
+                    .add(location)
+                    .addOnSuccessListener { docRef ->
 
-                if (image != null) {
-                    val path =
-                        "locations_images/$locationId/${uid}_${System.currentTimeMillis()}.jpg"
-                    StorageHelper.uploadFile(image, path) { success, downloadUrl ->
-                        if (success && downloadUrl != null) {
-                            db.collection("locations")
-                                .document(locationId)
-                                .update("imageUrl", downloadUrl)
-                                .addOnSuccessListener {
-                                    pointsService.addPointsToCurrentsUser(5)
-                                    onResult(true, "Dodata je lokacija sa slikom, +5p")
+                        val locationId = docRef.id
+                        val locationWithId = location.copy(id = locationId)
+                        db.collection("locations").document(locationId)
+                            .update("id", locationId)
 
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("MyLocationsViewModel", "Neuspešno dodavanje lokacije", e)
+                        if (image != null) {
+                            val path =
+                                "locations_images/$locationId/${uid}_${System.currentTimeMillis()}.jpg"
+                            StorageHelper.uploadFile(image, path) { success, downloadUrl ->
+                                if (success && downloadUrl != null) {
+                                    db.collection("locations")
+                                        .document(locationId)
+                                        .update("imageUrl", downloadUrl)
+                                        .addOnSuccessListener {
+                                            pointsService.addPointsToCurrentsUser(5)
+                                            onResult(true, "Dodata je lokacija sa slikom, +5p")
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                            pointsService.addPointsToCurrentsUser(3)
+                                            onResult(false, "Lokacija dodata , slika nije, +3p")
+                                        }
+                                } else {
                                     pointsService.addPointsToCurrentsUser(3)
-                                    onResult( false, "Lokacija dodata , slika nije, +3p" )
+                                    onResult(false, "Nije moguće uploadovati sliku, +3p")
                                 }
+                            }
                         } else {
                             pointsService.addPointsToCurrentsUser(3)
-                            onResult(false, "Nije moguće uploadovati sliku, +3p")
+                            onResult(true, "Lokacija uspešno dodata")
                         }
                     }
-                } else
-                    onResult(true, "Lokacija uspešno dodata")
+                    .addOnFailureListener { onResult(false, "Greška prilikom dodavanja lokacije") }
             }
-            .addOnFailureListener { onResult(false, "Greška prilikom dodavanja lokacije") }
+            .addOnFailureListener {
+                onResult(false, "Greška pri čitanju korisnika")
+            }
     }
 
     fun fetchAllLocations() {
@@ -109,36 +118,40 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
     }
 
     private var activeFilterType: EventType? = null
-    private var activeFilterAuthorId: String? = null
+    private var activeFilterAuthor: String? = null
     private var activeFilterLastUpdate: Long? = null
-    private var activeFilterRadius: Float? = null
+    var activeFilterRadius: Float? = null
 
 
     private fun applyFilters(lastComment: Map<String, Long?>): List<MyLocation> {
         var filtered = _locations.value
 
         activeFilterType?.let { type ->
-            filtered = filtered.filter { it.type == type.name }
+            filtered = filtered.filter { it.type == type.eventName }
         }
-        activeFilterAuthorId?.let { authorid ->
-            filtered = filtered.filter { it.uid == authorid }
+        activeFilterAuthor?.let { author ->
+            filtered = filtered.filter { it.username == author }
         }
         activeFilterLastUpdate?.let { timeMills ->
             filtered = filtered.filter { location ->
-                var lastUpdate = lastComment[location.id] ?: location.timestamp
+                val lastUpdate = lastComment[location.id] ?: location.timestamp
                 lastUpdate >= System.currentTimeMillis() - timeMills
             }
         }
-        val currentLocation = locationService.getCurrentLocation()
-        activeFilterRadius?.let { radius ->
-            filtered = filtered.filter { location ->
-                val result = FloatArray(1)
-                Location.distanceBetween(
-                    currentLocation!!.latitude, currentLocation.longitude,
-                    location.latitude, location.longitude,
-                    result
-                )
-                result[0] <= radius
+        var currLocation = currentLocation
+        if(currLocation!=null) {
+            activeFilterRadius?.let { radius ->
+                val radiusMeters = radius * 1000
+                Log.d("RADIJUS", radiusMeters.toString())
+                filtered = filtered.filter { location ->
+                    val result = FloatArray(1)
+                    Location.distanceBetween(
+                        currLocation.latitude, currLocation.longitude,
+                        location.latitude, location.longitude,
+                        result
+                    )
+                    result[0] <= radiusMeters
+                }
             }
         }
 
@@ -146,11 +159,9 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
         return filtered
     }
 
-    fun filterByAuthor(authorId: String) {
-        if (activeFilterAuthorId == null || activeFilterAuthorId != authorId) {
-            db.collection("users").document(authorId).get()
-                .addOnSuccessListener { activeFilterAuthorId = authorId }
-                .addOnFailureListener { activeFilterAuthorId = null }
+    fun filterByAuthor(author: String) {
+        if (activeFilterAuthor == null || activeFilterAuthor != author) {
+            activeFilterAuthor = author
             applyFilter()
         }
     }
@@ -162,7 +173,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
         }
     }
 
-    fun filteredByLastUpdate(timeMills: Long) {
+    fun filterByLastUpdate(timeMills: Long) {
         activeFilterLastUpdate = timeMills
         applyFilter()
     }
@@ -181,78 +192,30 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
     fun resetFilters() {
         activeFilterType = null
         activeFilterRadius = null
-        activeFilterAuthorId = null
+        activeFilterAuthor = null
         activeFilterLastUpdate = null
         applyFilter()
     }
+
+    fun apllyUserFilters(
+        author: String? = null,
+        type: EventType? = null,
+        time: Long? = null,
+        radiusKm: Float? = null
+    ){
+        resetFilters()
+
+        if(!author.isNullOrBlank())
+            filterByAuthor(author)
+        if(type!=null)
+            filterByType(type)
+        if(time!=null)
+            filterByLastUpdate(time)
+        if(radiusKm!=null)
+            filterByRadius(radiusKm)
+    }
+
+    fun hasActiveFilters(): Boolean{
+        return !(activeFilterAuthor==null && activeFilterRadius==null && activeFilterLastUpdate==null && activeFilterType==null)
+    }
 }
-
-//    fun filteredByAuthor(authorId: String, onResult: (Boolean, List<MyLocation>?) -> Unit){
-//        db.collection("users").document(authorId).get()
-//            .addOnSuccessListener { doc ->
-//                if(!doc.exists())
-//                    onResult(false, null)
-//                else{
-//                    val filtered = _locations.value.filter { it.uid == authorId }
-//                    _filteredLocations.value = filtered
-//                    onResult(true, filtered)
-//                }
-//            }
-//            .addOnFailureListener { onResult(false, null) }
-//    }
-
-//    fun filteredByType(type: EventType, onResult: (Boolean, List<MyLocation>) -> Unit)
-//    {
-//        val filtered = _locations.value.filter { it.type == type }
-//        _filteredLocations.value = filtered;
-//        onResult(true, filtered)
-//    }
-//
-//    fun filteredByLastUpdate(timeMills: Long, onResult: (Boolean, List<MyLocation>?) -> Unit){
-//        val filtered = mutableListOf<MyLocation>()
-//        val locationList = _locations.value
-//        var remaining = locationList.size
-//        if(locationList.isEmpty()) onResult(true, emptyList())
-//
-//        for(location in locationList){
-//            commentsService.getComments(location.id) { success, comments ->
-//                if(!success) {
-//                    onResult(false, null)
-//                    return@getComments
-//                }
-//                val lastUpdate = if (comments.isNotEmpty())
-//                    comments.maxOf { it.timestamp }
-//                else
-//                    location.timestamp
-//
-//                if(lastUpdate >= System.currentTimeMillis() - timeMills)
-//                    filtered.add(location)
-//
-//                remaining--
-//                if(remaining == 0){
-//                    _filteredLocations.value = filtered
-//                    onResult(true, filtered)
-//                }
-//            }
-//        }
-//    }
-//
-//    fun filterByRadius(radius: Int, onResult: (Boolean, List<MyLocation>?) -> Unit)
-//    {
-//        val currentLocation = locationService.getCurrentLocation()
-//        if(currentLocation == null){
-//            onResult(false, emptyList())
-//            return
-//        }
-//        val filtered = _locations.value.filter { location ->
-//            val result = FloatArray(1)
-//            Location.distanceBetween(
-//                currentLocation!!.latitude, currentLocation.longitude,
-//                location.latitude, location.longitude,
-//                result
-//            )
-//            result[0] <= radius
-//        }
-//        _filteredLocations.value = filtered
-//        onResult(true, filtered)
-//    }

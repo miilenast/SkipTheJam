@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,13 +26,31 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Početna strana") },
+                title = {
+                    Box(Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Text(
+                            "Početna strana",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                     }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { goToMap() }) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Map",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { goToProfil() }) {
                         Icon(
                             imageVector = Icons.Filled.AccountBox,
                             contentDescription = "Korisnički profil",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }

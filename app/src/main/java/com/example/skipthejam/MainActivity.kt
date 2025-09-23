@@ -116,7 +116,10 @@ fun AppNavigation() {
         }
         composable(Screen.Map.route){
             MapScreen(
-                onFilterClick = {},
+                goToHome = {navController.navigate(Screen.Home.route){
+                    popUpTo(Screen.Map.route) {inclusive = true}
+                    launchSingleTop = true
+                } },
                 onAddPostClick = {navController.navigate(Screen.AddPost.route)},
                 onMarkerClick = {navController.navigate(Screen.Post.route)},
                 locationViewModel,

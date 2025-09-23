@@ -3,6 +3,7 @@ package com.example.skipthejam.viewmodel
 import com.example.skipthejam.utils.StorageHelper
 import com.example.skipthejam.model.User
 import android.net.Uri
+import androidx.compose.animation.core.snap
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -141,9 +142,11 @@ class AuthentificationViewModel : ViewModel() {
     init{
         _currentUser.value?.uid?.let { uid ->
             db.collection("users").document(uid)
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    _currentUserUser.value = snapshot.toObject(User::class.java)
+                .addSnapshotListener { snapshot, e ->
+                    if( e!=null || snapshot==null || !snapshot.exists())
+                        return@addSnapshotListener
+                    val user = snapshot.toObject(User::class.java)
+                    _currentUserUser.value = user
                 }
         }
     }

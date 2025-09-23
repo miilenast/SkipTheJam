@@ -11,6 +11,6 @@ class PointsService {
     fun addPointsToCurrentsUser(points: Int){
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid)
-            .update("points", FieldValue.increment(points.toLong()))
+            .update("poeni", FieldValue.increment(points.toLong()))
     }
 }
