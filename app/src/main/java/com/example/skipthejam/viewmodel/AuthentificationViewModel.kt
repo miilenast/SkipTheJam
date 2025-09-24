@@ -3,20 +3,17 @@ package com.example.skipthejam.viewmodel
 import com.example.skipthejam.utils.StorageHelper
 import com.example.skipthejam.model.User
 import android.net.Uri
-import androidx.compose.animation.core.snap
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 
 class AuthentificationViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
-    private val _currentUser = mutableStateOf<FirebaseUser?>(auth.currentUser)
-    val currentUser: State<FirebaseUser?> = _currentUser
+    private val _currentUser = mutableStateOf(auth.currentUser)
     private val _currentUserUser = mutableStateOf<User?>(null)
     val currentUserUser: State<User?> = _currentUserUser
 

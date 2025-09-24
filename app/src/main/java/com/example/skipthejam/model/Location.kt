@@ -1,8 +1,5 @@
 package com.example.skipthejam.model
 
-import com.google.firebase.firestore.DocumentId
-import com.google.firebase.firestore.IgnoreExtraProperties
-
 data class Location(
     val id: String = "",
     val type: String = EventType.TRAFFIC_JAM.eventName,

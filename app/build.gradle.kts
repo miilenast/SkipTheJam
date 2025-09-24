@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.storage.ktx)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation (libs.firebase.functions.ktx)
 
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)

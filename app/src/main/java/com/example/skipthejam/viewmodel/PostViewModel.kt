@@ -4,12 +4,9 @@ import android.app.Application
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.skipthejam.model.Comment
-import com.example.skipthejam.model.Location
 import com.example.skipthejam.model.User
 import com.example.skipthejam.service.CommentsService
-import com.example.skipthejam.service.LocationService
 import com.example.skipthejam.service.PointsService
 import com.example.skipthejam.utils.StorageHelper
 import com.google.android.gms.tasks.Tasks
@@ -20,11 +17,10 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import com.example.skipthejam.model.Location as MyLocation
 
 class PostViewModel(application: Application): AndroidViewModel(application){
-    private val commentsService = CommentsService(application.applicationContext)
+    private val commentsService = CommentsService()
     private val pointsService = PointsService()
     val db = FirebaseFirestore.getInstance()
     val storage = FirebaseStorage.getInstance()
@@ -157,7 +153,7 @@ class PostViewModel(application: Application): AndroidViewModel(application){
             onResult(false, "Nije izabrana lokacija")
             return
         }
-        val locationId = location.id;
+        val locationId = location.id
 
         commentsService.deleteCommentsForLocation(locationId) { success, msg ->
             if (!success) {
@@ -176,7 +172,7 @@ class PostViewModel(application: Application): AndroidViewModel(application){
                                 .delete()
                                 .addOnSuccessListener {
                                     pointsService.addPointsToCurrentsUser(4)
-                                    _selectedLocation.value = null;
+                                    _selectedLocation.value = null
                                     _comments.value = emptyList()
                                     onResult( true, "Lokacija i sve slike uspešno obrisane" )
                                 }

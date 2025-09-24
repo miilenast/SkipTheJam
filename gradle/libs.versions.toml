@@ -1,6 +1,7 @@
 [versions]
 agp = "8.11.2"
 coilCompose = "2.7.0"
+firebaseFunctionsKtx = "21.2.1"
 firebaseMessagingKtx = "24.1.2"
 kotlin = "2.2.20"
 coreKtx = "1.17.0"
@@ -22,6 +23,7 @@ workRuntimeKtx = "2.10.4"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+firebase-functions-ktx = { module = "com.google.firebase:firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx", version.ref = "firebaseMessagingKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

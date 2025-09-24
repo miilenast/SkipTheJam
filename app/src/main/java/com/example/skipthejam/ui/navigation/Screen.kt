@@ -1,7 +1,5 @@
 package com.example.skipthejam.ui.navigation
 
-import com.example.skipthejam.model.Location
-
 sealed class Screen(val route: String) {
     object Start: Screen("start")
     object Login: Screen("login")

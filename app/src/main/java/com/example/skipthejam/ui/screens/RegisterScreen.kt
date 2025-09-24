@@ -78,11 +78,10 @@ fun RegisterScreen(
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        hasCameraPermision = granted;
+        hasCameraPermision = granted
         if(granted)
             cameraLauncher.launch(null)
     }
-
 
     Column(
         modifier = Modifier
@@ -126,12 +125,15 @@ fun RegisterScreen(
                     Text("Izaberi iz galerije")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Button( onClick = {
-                    if(hasCameraPermision)
-                        cameraLauncher.launch(null)
-                    else
-                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }) {
+                Button(
+                    onClick = {
+                        if(hasCameraPermision)
+                            cameraLauncher.launch(null)
+                        else
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    enabled = hasCameraPermision
+                ) {
                     Text("Slikaj")
                 }
             }

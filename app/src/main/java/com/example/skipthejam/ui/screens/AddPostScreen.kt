@@ -2,7 +2,6 @@ package com.example.skipthejam.ui.screens
 
 import android.content.ContentValues
 import android.content.Context
-
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
@@ -13,8 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,11 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.skipthejam.model.EventType
 import com.example.skipthejam.viewmodel.LocationViewModel
 import com.example.skipthejam.viewmodel.MyLocationsViewModel
+import android.Manifest
+import android.content.pm.PackageManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,11 +48,16 @@ fun AddPostScreen(
     var title by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
 
+    var hasCameraPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if(success) selectedImage = tempImageUri
-        else selectedImage = null
+        selectedImage =
+            if(success) tempImageUri
+            else null
     }
 
     fun createImageUri(context: Context): Uri? {
@@ -64,6 +69,19 @@ fun AddPostScreen(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             contentValues
         )
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        hasCameraPermission = isGranted
+        if (isGranted) {
+            val uri = createImageUri(context)
+            if (uri != null) {
+                tempImageUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
     }
 
     Scaffold(
@@ -122,12 +140,16 @@ fun AddPostScreen(
 
             Button(
                 onClick = {
-                    val uri = createImageUri(context)
-                    if (uri != null) {
-                        tempImageUri = uri
-                        cameraLauncher.launch(uri)
+                    if(hasCameraPermission) {
+                        val uri = createImageUri(context)
+                        if (uri != null) {
+                            tempImageUri = uri
+                            cameraLauncher.launch(uri)
+                        }
                     }
-                }
+                    else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                },
+                enabled = hasCameraPermission
             ) {
                 Text("Slikaj")
             }

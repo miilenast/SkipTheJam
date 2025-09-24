@@ -8,27 +8,21 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.skipthejam.service.PointsService
 import com.example.skipthejam.service.CommentsService
 import com.example.skipthejam.model.EventType
-import com.example.skipthejam.service.LocationService
 import com.example.skipthejam.utils.StorageHelper
 import com.example.skipthejam.model.Location as MyLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class MyLocationsViewModel(application: Application): AndroidViewModel(application) {
-    private val locationService = LocationService(application.applicationContext)
-    var currentLocation: android.location.Location? = null
-    private val commentsService = CommentsService(application.applicationContext)
+    var currentLocation: Location? = null
+    private val commentsService = CommentsService()
     private val pointsService = PointsService()
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
-    private val storage = FirebaseStorage.getInstance()
 
     private val _locations = MutableStateFlow<List<MyLocation>>(emptyList())
-    val locations: StateFlow<List<MyLocation>> = _locations
-
     private val _filteredLocations = MutableStateFlow<List<MyLocation>>(emptyList())
     val filteredLocations: StateFlow<List<MyLocation>> = _filteredLocations
 
@@ -58,12 +52,12 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                     latitude = latitude,
                     longitude = longitude
                 )
+
                 db.collection("locations")
                     .add(location)
                     .addOnSuccessListener { docRef ->
 
                         val locationId = docRef.id
-                        val locationWithId = location.copy(id = locationId)
                         db.collection("locations").document(locationId)
                             .update("id", locationId)
 
@@ -91,7 +85,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                             }
                         } else {
                             pointsService.addPointsToCurrentsUser(3)
-                            onResult(true, "Lokacija uspešno dodata")
+                            onResult(true, "Lokacija uspešno dodata, +3p")
                         }
                     }
                     .addOnFailureListener { onResult(false, "Greška prilikom dodavanja lokacije") }
@@ -138,7 +132,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
                 lastUpdate >= System.currentTimeMillis() - timeMills
             }
         }
-        var currLocation = currentLocation
+        val currLocation = currentLocation
         if(currLocation!=null) {
             activeFilterRadius?.let { radius ->
                 val radiusMeters = radius * 1000
@@ -184,7 +178,7 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
     }
 
     fun applyFilter() {
-        commentsService.getLastComments(){ _, lastcomments ->
+        commentsService.getLastComments { _, lastcomments ->
             applyFilters( lastcomments )
         }
     }
@@ -213,9 +207,5 @@ class MyLocationsViewModel(application: Application): AndroidViewModel(applicati
             filterByLastUpdate(time)
         if(radiusKm!=null)
             filterByRadius(radiusKm)
-    }
-
-    fun hasActiveFilters(): Boolean{
-        return !(activeFilterAuthor==null && activeFilterRadius==null && activeFilterLastUpdate==null && activeFilterType==null)
     }
 }

@@ -3,21 +3,9 @@ package com.example.skipthejam.service
 import android.content.Context
 import com.example.skipthejam.model.Comment
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.toObject
 
-class CommentsService(private val context: Context) {
+class CommentsService() {
     private val db = FirebaseFirestore.getInstance()
-
-    fun getComments(locationId: String, onResult: (Boolean, List<Comment>?) -> Unit) {
-        db.collection("comments")
-            .whereEqualTo("locationId", locationId)
-            .get()
-            .addOnSuccessListener { result ->
-                val comments = result.map { doc -> doc.toObject(Comment::class.java) }
-                onResult(true, comments)
-            }
-            .addOnFailureListener { onResult(false, null) }
-    }
 
     fun getLastComments(onResult: (Boolean, Map<String, Long>) -> Unit) {
         db.collection("comments")

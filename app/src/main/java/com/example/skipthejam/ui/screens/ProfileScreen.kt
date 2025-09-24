@@ -1,22 +1,17 @@
 package com.example.skipthejam.ui.screens
 
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.skipthejam.viewmodel.AuthentificationViewModel
@@ -33,22 +28,6 @@ fun ProfileScreen(
     var title by remember { mutableStateOf("") }
     val currentUser by authViewModel.currentUserUser
     var showLogOutDialog by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-
-    val notificationPermissionLauncher =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { granted ->
-                if (granted) {
-                    message =
-                        "Od sada ćete primati notifikacije o gužvama u saobraćaju u Vašoj neposrednoj blizini"
-                    title = "Notifikacije"
-                    showDialog = true
-                }
-            }
-        } else null
 
     Scaffold(
         topBar = {

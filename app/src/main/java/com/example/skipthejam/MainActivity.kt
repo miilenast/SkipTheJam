@@ -1,14 +1,13 @@
 package com.example.skipthejam
 
+import com.example.skipthejam.service.LocationUpdateWorker
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,20 +24,40 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.skipthejam.viewmodel.LocationViewModel
 import com.example.skipthejam.viewmodel.MyLocationsViewModel
 import com.example.skipthejam.viewmodel.PostViewModel
 import com.example.skipthejam.viewmodel.RangListViewModel
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        startLocationUpdates()
         setContent {
             SkipTheJamTheme {
                 AppNavigation()
             }
         }
+    }
+
+    fun startLocationUpdates() {
+        val workRequest = PeriodicWorkRequestBuilder<LocationUpdateWorker>(
+            5,
+            TimeUnit.MINUTES
+        ).build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "locationUpdateWorker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
 
@@ -86,9 +105,25 @@ fun AppNavigation() {
                     if(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
                         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
+                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher?.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+
                     navController.navigate(Screen.Home.route){
                         popUpTo(0) {inclusive = true}
                         launchSingleTop = true
+                    }
+
+                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val token = task.result
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@addOnCompleteListener
+
+                            FirebaseFirestore.getInstance().collection("users").document(uid)
+                                .update("fcmToken", token)
+                        }
                     }
                 },
                 authViewModel

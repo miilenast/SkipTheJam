@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,7 +37,7 @@ fun TopUsersScreen(
                         contentAlignment = Alignment.Center
                     ){
                         Text(
-                            "10 top korisnika",
+                            "Top 10 korisnika",
                             color = MaterialTheme.colorScheme.primary
                         )
                     }

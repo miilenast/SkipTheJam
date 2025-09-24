@@ -1,15 +1,17 @@
 package com.example.skipthejam.ui.screens
 
+import android.Manifest
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
 import android.provider.MediaStore
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
@@ -30,11 +31,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.example.skipthejam.viewmodel.LocationViewModel
 import com.example.skipthejam.viewmodel.PostViewModel
-import com.google.firebase.messaging.remoteMessage
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +110,10 @@ fun PostScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "@${loc.username}:",style = MaterialTheme.typography.titleMedium)
+                    val timestamp = loc.timestamp
+                    val date = Date(timestamp)
+                    val formattedDate = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault()).format(date)
+                    Text(text = "@${loc.username}  $formattedDate",style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -173,8 +179,11 @@ fun PostScreen(
                                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
                                 .padding(8.dp)
                         ) {
+                            val timestamp = comment.timestamp
+                            val date = Date(timestamp)
+                            val formattedDate = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault()).format(date)
                             Text(
-                                text = "@"+comment.username+":",
+                                text = "@"+comment.username+"  "+formattedDate,
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -215,7 +224,7 @@ fun PostScreen(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                postViewModel.deleteLocation() { success, mes ->
+                                postViewModel.deleteLocation { success, mes ->
                                     if(success) showDeleteDialog = false
                                     else{
                                         showDeleteDialog = false
@@ -259,7 +268,6 @@ fun AddCommentDialog(
     var title by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
 
-
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -279,6 +287,23 @@ fun AddCommentDialog(
         )
     }
 
+    var hasCameraPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        hasCameraPermission = isGranted
+        if (isGranted) {
+            val uri = createImageUri(context)
+            if (uri != null) {
+                tempImageUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -289,6 +314,7 @@ fun AddCommentDialog(
                 .fillMaxWidth(0.9f)
                 .fillMaxHeight(0.7f)
                 .background(MaterialTheme.colorScheme.surface)
+                .border(width = 1.dp, color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(8.dp))
                 .padding(16.dp)
         ){
             Column(
@@ -329,12 +355,16 @@ fun AddCommentDialog(
 
                 Button(
                     onClick = {
-                        val uri = createImageUri(context)
-                        if (uri != null) {
-                            tempImageUri = uri
-                            cameraLauncher.launch(uri)
+                        if(hasCameraPermission) {
+                            val uri = createImageUri(context)
+                            if (uri != null) {
+                                tempImageUri = uri
+                                cameraLauncher.launch(uri)
+                            }
                         }
-                    }
+                        else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    enabled = hasCameraPermission
                 ) {
                     Text("Slikaj")
                 }
