@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class AuthentificationViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
@@ -16,6 +17,17 @@ class AuthentificationViewModel : ViewModel() {
     private val _currentUser = mutableStateOf(auth.currentUser)
     private val _currentUserUser = mutableStateOf<User?>(null)
     val currentUserUser: State<User?> = _currentUserUser
+    private var userProfileListener: ListenerRegistration? = null
+
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val user = firebaseAuth.currentUser
+        if (user != null) {
+            setupUserProfileListener(user.uid)
+        } else {
+            removeUserProfileListener()
+            _currentUserUser.value = null
+        }
+    }
 
     fun registerUser(username: String,
                      email: String, password: String,
@@ -137,14 +149,30 @@ class AuthentificationViewModel : ViewModel() {
     }
 
     init{
-        _currentUser.value?.uid?.let { uid ->
-            db.collection("users").document(uid)
-                .addSnapshotListener { snapshot, e ->
-                    if( e!=null || snapshot==null || !snapshot.exists())
-                        return@addSnapshotListener
-                    val user = snapshot.toObject(User::class.java)
-                    _currentUserUser.value = user
+        auth.addAuthStateListener(authStateListener)
+    }
+
+    private fun setupUserProfileListener(userId: String) {
+        removeUserProfileListener()
+
+        userProfileListener = db.collection("users").document(userId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    _currentUserUser.value = null
+                    return@addSnapshotListener
                 }
-        }
+
+                if (snapshot != null && snapshot.exists()) {
+                    val user = snapshot.toObject(User::class.java)?.copy(id = snapshot.id)
+                    _currentUserUser.value = user
+                } else {
+                    _currentUserUser.value = null
+                }
+            }
+    }
+
+    private fun removeUserProfileListener() {
+        userProfileListener?.remove()
+        userProfileListener = null
     }
 }
